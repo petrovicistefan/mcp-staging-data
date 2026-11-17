@@ -1,29 +1,55 @@
+<!-- mcp-name: io.github.petrovicistefan/mcp-staging-data -->
+
 # MCP Staging Data
 
-**Pull a small, referentially complete slice of PostgreSQL into staging — anonymized in memory — without ever showing production rows to the agent.**
+**GDPR-safe PostgreSQL subset + anonymization for AI coding agents (Claude Code, Cursor)** — copy a small, referentially complete slice of production into staging, mask PII in memory, and never show clear production rows to the model.
 
-Typical use: “reproduce the bug for order 4812” with real-shaped data and no clear emails, names or phones in the model context.
+Reproduce data-dependent bugs (“order 4812”) with real-shaped data: no raw emails, names, or phones in agent context. Local-first MCP server over stdio.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Status: v0.1 implementation complete locally. npm / MCP Registry publish stays with the maintainer.
+> **Part of the [petrovicistefan MCP suite](https://github.com/petrovicistefan/mcp-marketplace)** — local-first guardrails for AI coding agents.  
+> Status: v0.1 complete locally. npm / MCP Registry publish stays with the maintainer.
 
 ---
 
-## Safety in one paragraph
+## Why MCP Staging Data?
 
-Connections come only from environment variables. The source session is read-only. The target must not be the same host+port+database as the source (`localhost` and `127.0.0.1` count as the same host). Rows are anonymized **in memory** before anything is written. Tools return schemas, plans, counts and verify results — never source row values. Extract refuses unless **every** column in the planned tables has an explicit rule (PII `keep` also needs a `reason`).
+Teams often dump production Postgres into a laptop to debug one order — and leak PII into git, Slack, and AI chats. Hosted anonymizers and CLI subsetters are not wired for agents. This server is:
+
+| Need | What you get |
+|------|----------------|
+| **Agent-safe** | Tools return schema, plans, counts, verify status — **never source row values** |
+| **GDPR-minded** | Anonymize **in memory** before any target write; fail closed without rules |
+| **Referentially complete** | FK walk from a root row (parents + descendants, cycle-safe) |
+| **Deterministic** | HMAC pseudonyms so joins keep working across tables |
+| **Local-first** | stdio MCP; connections only from env; no telemetry |
+
+### Search / discovery keywords
+
+PostgreSQL staging data, database subset for developers, PII anonymization MCP, GDPR-safe test data, production data masking for AI agents, referentially complete subset, deterministic fake email/name/phone, Claude Code Postgres staging, Cursor MCP database anonymizer.
+
+---
+
+## What it does (and does not)
+
+**Does:** inspect schema + likely PII columns → set per-column rules → plan a subset from a root primary key → extract (read-only source, anonymize, write target) → verify masks on the target.
+
+**Does not:** full DB replication, backup, MySQL (v0.1), synthetic generation, or a general SQL client for production. The agent is not meant to browse clear production rows.
+
+---
 
 ## Quick start (local / unpublished)
 
 ```bash
 cp .env.example .env   # edit URLs + HMAC key
-npm ci
-npm run build
+npm ci && npm run build
 node dist/server.js
 ```
 
-Cursor / Claude example (`~/.cursor/mcp.json`):
+### Cursor
+
+Add to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -41,7 +67,34 @@ Cursor / Claude example (`~/.cursor/mcp.json`):
 }
 ```
 
-After publish, prefer `npx -y mcp-staging-data@<version>` with the same `env` block.
+### Claude Code
+
+```bash
+claude mcp add staging-data --env STAGING_DATA_SOURCE_URL=... --env STAGING_DATA_TARGET_URL=... --env STAGING_DATA_HMAC_KEY=... -- node /absolute/path/to/mcp-staging-data/dist/server.js
+```
+
+After publish: `npx -y mcp-staging-data@<version>` with the same `env` block.
+
+---
+
+## Use cases & example prompts
+
+```
+Inspect the source schema and list columns that look like PII.
+Set fake_email on users.email and fake_name on users.full_name.
+Plan a subset for orders where ids=[4812] and show row counts only.
+Extract that subset into staging, then verify no clear emails remain.
+```
+
+Typical workflows: bug reproduction on one order/user, GDPR-safer local fixtures, CI policy checks on `staging-data.rules.json`, shared deterministic masks via `STAGING_DATA_HMAC_KEY`.
+
+---
+
+## Safety in one paragraph
+
+Connections come only from environment variables. The source session is read-only. The target must not be the same host+port+database as the source (`localhost` ≡ `127.0.0.1`). Rows are anonymized **in memory** before anything is written. Tools never return source cell values. Extract refuses unless **every** column in the planned tables has an explicit rule (PII `keep` also needs a `reason`).
+
+---
 
 ## Environment
 
@@ -54,17 +107,21 @@ After publish, prefer `npx -y mcp-staging-data@<version>` with the same `env` bl
 
 Prefer a Postgres role with `SELECT`-only grants on the source.
 
+---
+
 ## Tools
 
 | Tool | Kind | Returns |
 |------|------|---------|
 | `inspect_schema` | read | Tables, FKs, PII-flagged columns |
 | `set_rules` | write (local file) | Writes/merges `staging-data.rules.json` |
-| `plan_subset` | read | Related tables + row counts for a root row |
+| `plan_subset` | read | Related tables + row counts for a root row (`table` + `ids`) |
 | `extract` | write (target) | Anonymized subset load; counts only |
 | `verify` | read | Whether target PII columns look ruled/masked |
 
-Root rows are selected with `table` + `ids` (primary-key values). Connection strings are never tool arguments.
+Connection strings are never tool arguments.
+
+---
 
 ## Anonymization rules
 
@@ -77,7 +134,7 @@ Root rows are selected with `table` + `ids` (primary-key values). Connection str
 | `null` | Always `NULL` |
 | `keep` | Pass-through; on PII columns requires `"reason"` |
 
-Outputs are deterministic for the same HMAC key and input so joins keep working. Changing the key changes all pseudonyms.
+Same HMAC key + input ⇒ same output (joins hold). Rotate the key ⇒ all pseudonyms change.
 
 Example `staging-data.rules.json`:
 
@@ -93,7 +150,20 @@ Example `staging-data.rules.json`:
 }
 ```
 
-Every column that will be extracted needs a rule. Free-text (`text` / `citext` / `json` / `jsonb` / `xml`) columns are treated as PII risks by name/type heuristics; false positives are expected.
+Every extracted column needs a rule. Free-text types (`text`, `citext`, `json`, `jsonb`, `xml`) are treated as PII risks by heuristics; false positives are expected.
+
+---
+
+## How it compares
+
+| Approach | Agent-safe (no clear rows) | Referential subset | In-memory anonymize | MCP-native |
+|----------|----------------------------|--------------------|---------------------|------------|
+| Raw `pg_dump` / copy | ❌ | ❌ (usually full) | ❌ | ❌ |
+| CLI subsetters | ❌ (logs/CLI) | ✅ | varies | ❌ |
+| Query-result maskers | masks output only | ❌ | n/a | sometimes |
+| **MCP Staging Data** | ✅ | ✅ | ✅ | ✅ |
+
+---
 
 ## Demo (fake data only)
 
@@ -102,7 +172,9 @@ docker compose -f docker-compose.test.yml up -d
 npm run demo
 ```
 
-Seeds the compose “source” DB from `test/fixtures/`, plans/extracts order `10`, verifies the target, and asserts clear fixture emails/names are gone.
+Seeds compose “source” from `test/fixtures/`, plans/extracts order `10`, verifies the target, asserts clear fixture emails/names are gone.
+
+---
 
 ## Threat model
 
@@ -115,9 +187,9 @@ Seeds the compose “source” DB from `test/fixtures/`, plans/extracts order `1
 ### Trust boundaries
 
 - Operator machine running the MCP server (trusted to hold env secrets)
-- Source Postgres (untrusted content; trusted network only as far as the operator configures)
+- Source Postgres (untrusted content; network as configured by the operator)
 - Target Postgres (receives anonymized rows)
-- MCP client / model (untrusted; must only see schemas, plans, counts, verify status)
+- MCP client / model (untrusted; schemas, plans, counts, verify only)
 
 ### Threats and controls
 
@@ -130,36 +202,53 @@ Seeds the compose “source” DB from `test/fixtures/`, plans/extracts order `1
 | Target is production | `assertSourceTargetDistinct` (host/port/db; loopback aliases normalized) |
 | Writes on source | `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY` + `default_transaction_read_only` |
 | Unruled / new columns copied clear | Extract refuses unless every planned column has a rule |
-| Reversible pseudonyms | HMAC keyed by local secret; without the key, values are not designed to be reversed |
-| Prompt injection via DB content | Agent never sees row payloads from source; still do not paste target dumps into prompts carelessly |
+| Reversible pseudonyms | HMAC keyed by local secret |
+| Prompt injection via DB content | Agent never sees source row payloads |
 
 ### Out of scope (v0.1)
 
-- Stopping a malicious operator with valid env credentials
-- Perfect PII detection (heuristics + verify reduce risk; free-text can hide PII)
-- Multi-hop identity resolution across DNS aliases for the same physical DB
+- Malicious operator with valid env credentials
+- Perfect PII detection (heuristics + verify reduce risk)
+- DNS-alias identity beyond loopback normalization
 - MySQL / synthetic generation / full-DB copy
 
 ### Residual risk
 
-Heuristic PII detection can miss columns. `verify` reduces but does not eliminate risk. Keep source credentials minimal, review `staging-data.rules.json` in PRs, and rotate `STAGING_DATA_HMAC_KEY` if it leaks (expect all pseudonyms to change).
+Heuristic PII detection can miss columns. Review `staging-data.rules.json` in PRs; rotate `STAGING_DATA_HMAC_KEY` if leaked.
+
+---
+
+## FAQ
+
+**Does the agent see production emails?** No. Tools return metadata and counts; extract writes only anonymized values to the target.
+
+**Is this a backup tool?** No. It copies small subsets (thousands of rows), not whole databases.
+
+**Why HMAC?** Deterministic masks keep FK/join shape stable without shipping a reversible cipher in v0.1.
+
+**Can target equal source?** No. Same host+port+database is refused (`localhost` and `127.0.0.1` match).
+
+---
 
 ## Development
 
 ```bash
-npm run check
-npm run check:rules
-npm test
-npm run build
+npm run check && npm run check:rules && npm test && npm run build
 docker compose -f docker-compose.test.yml up -d
 npm run test:integration
 ```
 
-Node ≥ 22.18. Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`, `pg` only.
+Node ≥ 22.18. Runtime deps: `@modelcontextprotocol/sdk`, `zod`, `pg` only.
+
+---
 
 ## Marketplace
 
-Plugin manifests ready to copy after npm publish live under [`docs/marketplace-plugin/`](docs/marketplace-plugin/). Do not pin an unpublished version in `mcp-marketplace` (pin check talks to npm).
+Plugin manifests to copy after npm publish: [`docs/marketplace-plugin/`](docs/marketplace-plugin/). Do not pin an unpublished version in `mcp-marketplace`.
+
+## More MCP servers by the author
+
+See the [petrovicistefan MCP marketplace](https://github.com/petrovicistefan/mcp-marketplace): security-guard, database-doctor, api-guardian, dependency-doctor, cost-optimizer, seo-auditor, and more.
 
 ## License
 

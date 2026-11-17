@@ -1,7 +1,7 @@
 {
   "name": "mcp-staging-data",
   "version": "0.1.0",
-  "description": "MCP server that subsets, anonymizes and loads PostgreSQL data into staging without exposing production rows to the agent",
+  "description": "GDPR-safe PostgreSQL subset and PII anonymization MCP server for AI agents — referentially complete staging data without exposing production rows",
   "mcpName": "io.github.petrovicistefan/mcp-staging-data",
   "type": "module",
   "license": "MIT",
@@ -49,12 +49,22 @@
     "mcp",
     "model-context-protocol",
     "postgresql",
+    "postgres",
     "anonymization",
-    "staging",
+    "pii",
     "gdpr",
+    "staging",
+    "test-data",
+    "database-subset",
+    "data-masking",
+    "fake-data",
+    "hmac",
     "mcp-server",
     "ai-agents",
     "claude",
-    "cursor"
+    "claude-code",
+    "cursor",
+    "codex",
+    "copilot"
   ]
 }

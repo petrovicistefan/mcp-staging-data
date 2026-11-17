@@ -1,6 +1,6 @@
 # MCP Staging Data
 
-This plugin adds the mcp-staging-data MCP server to Claude Code. It copies a small, referentially complete PostgreSQL subset into a staging database with in-memory anonymization. The agent receives schemas, plans, counts and verify results — not production row values.
+This plugin adds **MCP Staging Data** to Claude Code: GDPR-minded PostgreSQL subset + in-memory PII anonymization for AI agents. Pull a referentially complete slice into staging; the agent gets schemas, plans, counts and verify results — never clear production rows.
 
 ## Install (after npm publish)
 

@@ -2,7 +2,7 @@
   "name": "mcp-staging-data",
   "displayName": "MCP Staging Data",
   "version": "0.1.0",
-  "description": "Subset, anonymize and load PostgreSQL data into staging without exposing production rows to the agent.",
+  "description": "GDPR-safe PostgreSQL subset and PII anonymization for AI agents — staging data without exposing production rows.",
   "author": {
     "name": "Stefan Petrovici"
   },
