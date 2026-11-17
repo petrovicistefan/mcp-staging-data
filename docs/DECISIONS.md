@@ -32,3 +32,9 @@ Decision: TypeScript strict, stdio, `@modelcontextprotocol/sdk` + `zod` + `pg`, 
 Context: Full referential closure (also walking children of parents pulled for FK integrity) pulls sibling rows — e.g. other orders that share a product — and blows past the "one bug / one order" use case.
 Decision: Seeds and their child-descendants expand inbound FKs. Rows included only as parents do not expand their other children. Parents are still always included so the target insert stays FK-valid.
 Consequences: Shared dimension rows (products, users) appear in the target, but unrelated fact rows that also reference them do not.
+
+## ADR-007: Strict free-text PII default and rules for every column
+
+Context: Heuristic detectors miss columns; PRODUCT requires that new schema columns are never copied in clear by default.
+Decision: (1) Unconstrained free-text types (`text`, `citext`, `json`, `jsonb`, `xml`) are flagged as PII risks. (2) Extract requires an explicit rule for **every** column in planned tables, not only PII-flagged ones. `keep` on PII still needs a `reason`.
+Consequences: More `keep` entries in `staging-data.rules.json`; safer default when schema drifts.

@@ -16,6 +16,14 @@ test('redact removes password= style secrets', () => {
   assert.equal(out.includes('abc123'), false);
 });
 
+test('redact strips Postgres DETAIL key/value payloads', () => {
+  const msg =
+    'duplicate key value violates unique constraint "users_email_key" DETAIL: Key (email)=(alice@corp.example) already exists.';
+  const out = redact(msg);
+  assert.equal(out.includes('alice@corp.example'), false);
+  assert.match(out, /\[REDACTED_VALUE\]/);
+});
+
 test('redactError wraps unknown values', () => {
   const err = redactError(new Error('dsn=postgresql://a:b@localhost/db'));
   assert.equal(err.message.includes('postgresql://'), false);

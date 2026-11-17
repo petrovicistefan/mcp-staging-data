@@ -1,10 +1,20 @@
 {
   "version": 1,
   "columns": {
+    "users.id": { "type": "keep" },
     "users.email": { "type": "fake_email" },
     "users.full_name": { "type": "fake_name" },
     "users.phone": { "type": "fake_phone" },
+    "users.created_at": { "type": "keep" },
+    "orders.id": { "type": "keep" },
+    "orders.user_id": { "type": "keep" },
     "orders.status": { "type": "keep", "reason": "order workflow status is not personal data" },
+    "orders.total_cents": { "type": "keep" },
+    "order_items.id": { "type": "keep" },
+    "order_items.order_id": { "type": "keep" },
+    "order_items.product_id": { "type": "keep" },
+    "order_items.quantity": { "type": "keep" },
+    "products.id": { "type": "keep" },
     "products.name": { "type": "keep", "reason": "product catalog name is not personal data" },
     "products.sku": { "type": "keep", "reason": "product sku is not personal data" }
   }

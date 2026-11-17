@@ -18,14 +18,28 @@ const catalog: Catalog = {
 };
 
 test('checkExtractCoverage refuses unruled PII columns', () => {
-  const issues = checkExtractCoverage(catalog, ['users'], { version: 1, columns: {} });
+  const issues = checkExtractCoverage(catalog, ['users'], {
+    version: 1,
+    columns: { 'users.id': { type: 'keep' } },
+  });
   assert.ok(issues.some(i => i.kind === 'missing_rule' && i.column === 'email'));
 });
 
-test('checkExtractCoverage accepts ruled PII columns', () => {
+test('checkExtractCoverage refuses unruled non-PII columns (never copy clear by default)', () => {
   const issues = checkExtractCoverage(catalog, ['users'], {
     version: 1,
     columns: { 'users.email': { type: 'fake_email' } },
+  });
+  assert.ok(issues.some(i => i.kind === 'missing_rule' && i.column === 'id'));
+});
+
+test('checkExtractCoverage accepts full column coverage', () => {
+  const issues = checkExtractCoverage(catalog, ['users'], {
+    version: 1,
+    columns: {
+      'users.id': { type: 'keep' },
+      'users.email': { type: 'fake_email' },
+    },
   });
   assert.deepEqual(issues, []);
 });
@@ -33,7 +47,10 @@ test('checkExtractCoverage accepts ruled PII columns', () => {
 test('checkExtractCoverage requires reason for keep on PII', () => {
   const issues = checkExtractCoverage(catalog, ['users'], {
     version: 1,
-    columns: { 'users.email': { type: 'keep' } },
+    columns: {
+      'users.id': { type: 'keep' },
+      'users.email': { type: 'keep' },
+    },
   });
   assert.ok(issues.some(i => i.kind === 'keep_without_reason'));
 });

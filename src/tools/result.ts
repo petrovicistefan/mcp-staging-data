@@ -1,4 +1,4 @@
-import { redact, redactError } from '../redact.js';
+import { redact, redactError, redactStructured } from '../redact.js';
 
 export type ToolResult = {
   content: Array<{ type: 'text'; text: string }>;
@@ -7,10 +7,11 @@ export type ToolResult = {
 };
 
 export function ok(output: Record<string, unknown>): ToolResult {
-  const text = redact(JSON.stringify(output));
+  const scrubbed = redactStructured(output);
+  const text = redact(JSON.stringify(scrubbed));
   return {
     content: [{ type: 'text', text }],
-    structuredContent: output,
+    structuredContent: scrubbed,
   };
 }
 

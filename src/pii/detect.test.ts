@@ -28,11 +28,19 @@ test('flags ssn/cnp style national ids (regression: missed PII is a bug)', () =>
   assert.deepEqual(flags.map(f => f.column).sort(), ['cnp', 'ssn']);
 });
 
-test('does not flag ordinary non-PII columns', () => {
+test('does not flag ordinary non-PII columns (bounded varchar is not free-text)', () => {
   const flags = detectPiiColumns([
     { table: 'orders', name: 'id', dataType: 'bigint' },
-    { table: 'orders', name: 'status', dataType: 'text', udtName: 'varchar' },
+    { table: 'orders', name: 'status', dataType: 'character varying', udtName: 'varchar' },
     { table: 'orders', name: 'total_cents', dataType: 'integer' },
   ]);
   assert.deepEqual(flags, []);
+});
+
+test('flags unconstrained text status columns as free-text PII risk', () => {
+  const flags = detectPiiColumns([
+    { table: 'orders', name: 'status', dataType: 'text', udtName: 'text' },
+  ]);
+  assert.equal(flags.length, 1);
+  assert.equal(flags[0]?.column, 'status');
 });

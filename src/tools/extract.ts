@@ -64,7 +64,11 @@ export async function extractTool(config: AppConfig, input: ExtractInput): Promi
           const transformed = colNames.map((col, i) => {
             const rule = ruleForColumn(rules, planned.table, col);
             const value = values[i] ?? null;
-            if (!rule) return value;
+            if (!rule) {
+              throw new Error(
+                `extract refused: missing rule for ${planned.table}.${col} (never copy clear by default)`,
+              );
+            }
             return applyRule(rule, value, {
               key: config.hmacKey,
               table: planned.table,

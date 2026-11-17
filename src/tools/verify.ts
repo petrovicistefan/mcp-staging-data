@@ -11,9 +11,15 @@ export type VerifyInput = {
 
 type PgRow = Record<string, unknown>;
 
+function quoteIdent(name: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    throw new Error('Invalid SQL identifier');
+  }
+  return `"${name}"`;
+}
+
 /**
- * Verify target: every PII-flagged column has a rule, and sample values are not
- * equal to known clear patterns when a transforming rule is set.
+ * Verify target: every PII-flagged column has a rule, and transforming rules look applied.
  * Does not return row payloads to the agent — only pass/fail and column names.
  */
 export async function verifyTool(config: AppConfig, input: VerifyInput = {}): Promise<ToolResult> {
@@ -49,37 +55,45 @@ export async function verifyTool(config: AppConfig, input: VerifyInput = {}): Pr
           continue;
         }
         if (rule.type === 'keep') continue;
+
+        const table = quoteIdent(flag.table);
+        const column = quoteIdent(flag.column);
+
         if (rule.type === 'null') {
           const res = await target.query(
-            `SELECT count(*)::int AS n FROM "${flag.table}" WHERE "${flag.column}" IS NOT NULL`,
+            `SELECT count(*)::int AS n FROM ${table} WHERE ${column} IS NOT NULL`,
           );
-          if ((res.rows[0] as PgRow).n !== 0) {
-            unmasked.push(`${flag.table}.${flag.column}`);
-          }
+          if ((res.rows[0] as PgRow).n !== 0) unmasked.push(`${flag.table}.${flag.column}`);
           continue;
         }
 
-        // For transforming rules, refuse if any non-null value still looks like a clear email/name
-        // when the rule is fake_email / fake_name / etc. Heuristic: fake_email must end with @example.test.
         if (rule.type === 'fake_email') {
           const res = await target.query(
-            `SELECT count(*)::int AS n FROM "${flag.table}"
-             WHERE "${flag.column}" IS NOT NULL
-               AND "${flag.column}"::text NOT LIKE '%@example.test'`,
+            `SELECT count(*)::int AS n FROM ${table}
+             WHERE ${column} IS NOT NULL AND ${column}::text NOT LIKE '%@example.test'`,
           );
           if ((res.rows[0] as PgRow).n !== 0) unmasked.push(`${flag.table}.${flag.column}`);
         } else if (rule.type === 'hash') {
           const res = await target.query(
-            `SELECT count(*)::int AS n FROM "${flag.table}"
-             WHERE "${flag.column}" IS NOT NULL
-               AND "${flag.column}"::text !~ '^[0-9a-f]{64}$'`,
+            `SELECT count(*)::int AS n FROM ${table}
+             WHERE ${column} IS NOT NULL AND ${column}::text !~ '^[0-9a-f]{64}$'`,
           );
           if ((res.rows[0] as PgRow).n !== 0) unmasked.push(`${flag.table}.${flag.column}`);
         } else if (rule.type === 'fake_phone') {
           const res = await target.query(
-            `SELECT count(*)::int AS n FROM "${flag.table}"
-             WHERE "${flag.column}" IS NOT NULL
-               AND "${flag.column}"::text !~ '^\\+1[2-9][0-9]{9}$'`,
+            `SELECT count(*)::int AS n FROM ${table}
+             WHERE ${column} IS NOT NULL AND ${column}::text !~ '^\\+1[2-9][0-9]{9}$'`,
+          );
+          if ((res.rows[0] as PgRow).n !== 0) unmasked.push(`${flag.table}.${flag.column}`);
+        } else if (rule.type === 'fake_name') {
+          // Deterministic fake names are "First Last" from a fixed word list — reject emails / raw phones.
+          const res = await target.query(
+            `SELECT count(*)::int AS n FROM ${table}
+             WHERE ${column} IS NOT NULL
+               AND (
+                 ${column}::text ~* '[@0-9]'
+                 OR ${column}::text !~ '^[A-Za-z]+ [A-Za-z]+$'
+               )`,
           );
           if ((res.rows[0] as PgRow).n !== 0) unmasked.push(`${flag.table}.${flag.column}`);
         }

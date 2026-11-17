@@ -8,8 +8,9 @@ export type CoverageIssue =
   | { kind: 'keep_without_reason'; table: string; column: string };
 
 /**
- * Fail-closed checks before extract: every PII column in planned tables needs a rule;
- * `keep` on PII requires an explicit reason.
+ * Fail-closed checks before extract:
+ * - every column in planned tables needs an explicit rule (never copy clear by default);
+ * - `keep` on PII requires an explicit reason.
  */
 export function checkExtractCoverage(
   catalog: Catalog,
@@ -18,29 +19,34 @@ export function checkExtractCoverage(
 ): CoverageIssue[] {
   const planned = new Set(plannedTables);
   const columns = catalog.columns.filter(c => planned.has(c.table));
-  const pii = detectPiiColumns(
-    columns.map(c => ({
-      table: c.table,
-      name: c.name,
-      dataType: c.dataType,
-      udtName: c.udtName,
-    })),
+  const pii = new Set(
+    detectPiiColumns(
+      columns.map(c => ({
+        table: c.table,
+        name: c.name,
+        dataType: c.dataType,
+        ...(c.udtName !== undefined ? { udtName: c.udtName } : {}),
+      })),
+    ).map(f => `${f.table}.${f.column}`),
   );
   const issues: CoverageIssue[] = [];
 
-  for (const flag of pii) {
-    const rule = ruleForColumn(rules, flag.table, flag.column);
+  for (const col of columns) {
+    const key = `${col.table}.${col.name}`;
+    const rule = ruleForColumn(rules, col.table, col.name);
     if (!rule) {
       issues.push({
         kind: 'missing_rule',
-        table: flag.table,
-        column: flag.column,
-        reason: flag.reason,
+        table: col.table,
+        column: col.name,
+        reason: pii.has(key)
+          ? 'PII-flagged column has no rule'
+          : 'column has no rule (new/unknown columns are never copied in clear)',
       });
       continue;
     }
-    if (rule.type === 'keep' && !rule.reason) {
-      issues.push({ kind: 'keep_without_reason', table: flag.table, column: flag.column });
+    if (rule.type === 'keep' && pii.has(key) && !rule.reason) {
+      issues.push({ kind: 'keep_without_reason', table: col.table, column: col.name });
     }
   }
 

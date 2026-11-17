@@ -14,7 +14,10 @@ export type PiiFlag = {
 
 const NAME_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /e_?mail|email_?address/i, reason: 'column name looks like email' },
-  { re: /(^|_)(first_?name|last_?name|full_?name|display_?name|surname|given_?name)(_|$)/i, reason: 'column name looks like a personal name' },
+  {
+    re: /(^|_)(first_?name|last_?name|full_?name|display_?name|surname|given_?name)(_|$)/i,
+    reason: 'column name looks like a personal name',
+  },
   { re: /(^|_)(phone|mobile|cell|tel|telephone)(_|$)/i, reason: 'column name looks like a phone number' },
   { re: /(^|_)(address|street|city|postal|zip|postcode|country)(_|$)/i, reason: 'column name looks like an address' },
   { re: /(^|_)(ip|ip_?address|ipv4|ipv6)(_|$)/i, reason: 'column name looks like an IP address' },
@@ -24,11 +27,13 @@ const NAME_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /(^|_)(token|api_?key|secret|password|passwd|pwd)(_|$)/i, reason: 'column name looks like a secret or token' },
 ];
 
+/** Unconstrained free-text types (false positives OK; false negatives are bugs). */
 const FREE_TEXT_TYPES = new Set(['text', 'citext', 'json', 'jsonb', 'xml']);
 
 /**
  * Heuristic PII detection by column name and type.
  * False positives are acceptable; false negatives are bugs.
+ * Bounded varchar is not auto-flagged; extract still requires an explicit rule per column.
  */
 export function detectPiiColumns(columns: ColumnMeta[]): PiiFlag[] {
   const flags: PiiFlag[] = [];
@@ -46,16 +51,13 @@ export function detectPiiColumns(columns: ColumnMeta[]): PiiFlag[] {
       }
     }
     const type = (col.udtName ?? col.dataType).toLowerCase();
-    if (FREE_TEXT_TYPES.has(type) || type === 'character varying' || type.startsWith('varchar')) {
-      // Free-text / long varchar without a specific name still flagged when type is unconstrained text.
-      if (FREE_TEXT_TYPES.has(type) && !seen.has(key)) {
-        seen.add(key);
-        flags.push({
-          table: col.table,
-          column: col.name,
-          reason: 'free-text column may contain personal data',
-        });
-      }
+    if (FREE_TEXT_TYPES.has(type) && !seen.has(key)) {
+      seen.add(key);
+      flags.push({
+        table: col.table,
+        column: col.name,
+        reason: 'free-text column may contain personal data',
+      });
     }
   }
 

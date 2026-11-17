@@ -89,20 +89,7 @@ test('extract anonymizes and verify passes; no source PII in tool output', async
   await resetDatabase(TARGET_URL, false);
   const dir = mkdtempSync(join(tmpdir(), 'staging-rules-'));
   const rulesPath = join(dir, 'rules.json');
-  writeFileSync(
-    rulesPath,
-    JSON.stringify({
-      version: 1,
-      columns: {
-        'users.email': { type: 'fake_email' },
-        'users.full_name': { type: 'fake_name' },
-        'users.phone': { type: 'fake_phone' },
-        'orders.status': { type: 'keep', reason: 'order workflow status is not personal data' },
-        'products.name': { type: 'keep', reason: 'product catalog name is not personal data' },
-        'products.sku': { type: 'keep', reason: 'product sku is not personal data' },
-      },
-    }),
-  );
+  writeFileSync(rulesPath, readFileSync(new URL('../fixtures/rules.json', import.meta.url), 'utf8'));
 
   const extracted = await extractTool(testConfig(rulesPath), { table: 'orders', primaryKey: [10] });
   assert.equal(extracted.isError, undefined, extracted.content[0]?.text);
