@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.petrovicistefan/mcp-staging-data",
+  "title": "MCP Staging Data",
+  "description": "Subset, anonymize and load PostgreSQL data into staging without exposing production rows to the agent.",
+  "websiteUrl": "https://github.com/petrovicistefan/mcp-staging-data#readme",
+  "repository": {
+    "url": "https://github.com/petrovicistefan/mcp-staging-data",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "mcp-staging-data",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

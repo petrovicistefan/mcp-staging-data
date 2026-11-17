@@ -1,0 +1,59 @@
+{
+  "name": "mcp-staging-data",
+  "version": "0.1.0",
+  "description": "MCP server that subsets, anonymizes and loads PostgreSQL data into staging without exposing production rows to the agent",
+  "mcpName": "io.github.petrovicistefan/mcp-staging-data",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "mcp-staging-data": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/postbuild.mjs",
+    "check": "tsc --noEmit",
+    "check:rules": "node scripts/check-rules.mjs",
+    "test": "tsx --test test/*.test.ts src/**/*.test.ts",
+    "test:integration": "tsx --test test/integration/*.test.ts",
+    "prepublishOnly": "npm run check && npm run check:rules && npm test && npm run build && npm run test:integration"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "pg": "^8.16.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrovicistefan/mcp-staging-data.git"
+  },
+  "homepage": "https://github.com/petrovicistefan/mcp-staging-data#readme",
+  "bugs": {
+    "url": "https://github.com/petrovicistefan/mcp-staging-data/issues"
+  },
+  "author": "Stefan Petrovici",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "postgresql",
+    "anonymization",
+    "staging",
+    "gdpr",
+    "mcp-server",
+    "ai-agents",
+    "claude",
+    "cursor"
+  ]
+}
