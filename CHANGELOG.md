@@ -9,3 +9,4 @@
 - Deterministic HMAC anonymization rules: `hash`, `fake_name`, `fake_email`, `fake_phone`, `null`, `keep`.
 - Database layer: read-only source sessions, source≠target guard (localhost ≡ 127.0.0.1), catalog loader, FK-safe target writer, docker-compose test harness with fake fixtures.
 - MCP tools: `inspect_schema`, `set_rules`, `plan_subset`, `extract`, `verify` with fail-closed PII coverage.
+- Safety tests: no source PII or connection strings in tool output; extract refuses unruled PII and same source/target; verify catches unmasked columns.

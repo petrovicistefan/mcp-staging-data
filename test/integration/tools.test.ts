@@ -12,8 +12,9 @@ import { verifyTool } from '../../src/tools/verify.ts';
 import { openTarget } from '../../src/db/target.ts';
 import { resetDatabase, SOURCE_URL, TARGET_URL, waitForPostgres } from './helpers.ts';
 
+import { FIXTURE_PII } from '../fixtures/pii.ts';
+
 const HMAC = 'test-hmac-key-32chars-minimum!!';
-const FIXTURE_PII = ['alice@corp.example', 'bob@corp.example', 'Alice Example', 'Bob Example'];
 
 function testConfig(rulesPath: string) {
   return loadConfig({
