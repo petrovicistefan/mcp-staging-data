@@ -237,7 +237,8 @@ if (existsSync(rulesDir)) {
       name === 'types.ts' ||
       name === 'hmac.ts' ||
       name === 'apply.ts' ||
-      name === 'schema.ts'
+      name === 'schema.ts' ||
+      name === 'store.ts'
     ) {
       continue;
     }
