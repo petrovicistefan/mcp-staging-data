@@ -20,8 +20,8 @@
     "build": "tsc && node scripts/postbuild.mjs",
     "check": "tsc --noEmit",
     "check:rules": "node scripts/check-rules.mjs",
-    "test": "tsx --test test/*.test.ts src/**/*.test.ts",
-    "test:integration": "tsx --test test/integration/*.test.ts",
+    "test": "tsx --test 'test/*.test.ts' 'src/**/*.test.ts'",
+    "test:integration": "tsx --test 'test/integration/*.test.ts'",
     "prepublishOnly": "npm run check && npm run check:rules && npm test && npm run build && npm run test:integration"
   },
   "dependencies": {

@@ -230,7 +230,15 @@ for (const { file, text } of sources) {
 const rulesDir = join(root, 'src/rules');
 if (existsSync(rulesDir)) {
   for (const name of readdirSync(rulesDir)) {
-    if (!name.endsWith('.ts') || name.endsWith('.test.ts') || name === 'index.ts' || name === 'types.ts' || name === 'hmac.ts' || name === 'apply.ts' || name === 'schema.ts') {
+    if (
+      !name.endsWith('.ts') ||
+      name.endsWith('.test.ts') ||
+      name === 'index.ts' ||
+      name === 'types.ts' ||
+      name === 'hmac.ts' ||
+      name === 'apply.ts' ||
+      name === 'schema.ts'
+    ) {
       continue;
     }
     const base = basename(name, '.ts');
@@ -239,8 +247,13 @@ if (existsSync(rulesDir)) {
       fail('rule-tests', `src/rules/${base}.ts has no src/rules/${base}.test.ts`);
       continue;
     }
+    // `keep` is the only rule allowed to return the input; all others must prove output ≠ input.
+    if (base === 'keep') continue;
     const testText = readText(`src/rules/${base}.test.ts`);
-    if (!/!==|notEqual|notStrictEqual|not\.equal|doesNotMatch|not\.deepEqual/i.test(testText) && !/differ|differs|≠|!=/.test(testText)) {
+    if (
+      !/!==|notEqual|notStrictEqual|not\.equal|doesNotMatch|not\.deepEqual/i.test(testText) &&
+      !/differ|differs|≠|!=/.test(testText)
+    ) {
       fail('rule-tests', `src/rules/${base}.test.ts must assert that rule output differs from input`);
     }
   }

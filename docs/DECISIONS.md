@@ -26,3 +26,9 @@ Consequences: users must keep the key out of the repo; changing the key changes 
 ## ADR-005: Same suite conventions
 
 Decision: TypeScript strict, stdio, `@modelcontextprotocol/sdk` + `zod` + `pg`, node:test via tsx, version from package.json, MIT, optional hosted path through `mcp-control-plane`.
+
+## ADR-006: Subset walk expands children only from seeds and descendants
+
+Context: Full referential closure (also walking children of parents pulled for FK integrity) pulls sibling rows — e.g. other orders that share a product — and blows past the "one bug / one order" use case.
+Decision: Seeds and their child-descendants expand inbound FKs. Rows included only as parents do not expand their other children. Parents are still always included so the target insert stays FK-valid.
+Consequences: Shared dimension rows (products, users) appear in the target, but unrelated fact rows that also reference them do not.
