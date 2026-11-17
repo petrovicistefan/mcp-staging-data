@@ -1,0 +1,19 @@
+{
+  "name": "mcp-staging-data",
+  "displayName": "MCP Staging Data",
+  "version": "0.1.0",
+  "description": "Subset, anonymize and load PostgreSQL data into staging without exposing production rows to the agent.",
+  "author": {
+    "name": "Stefan Petrovici"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "postgresql",
+    "anonymization",
+    "staging",
+    "gdpr"
+  ],
+  "homepage": "https://github.com/petrovicistefan/mcp-staging-data",
+  "repository": "https://github.com/petrovicistefan/mcp-staging-data"
+}

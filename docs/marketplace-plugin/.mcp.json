@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "staging-data": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-staging-data@0.1.0"
+      ],
+      "env": {
+        "STAGING_DATA_SOURCE_URL": "${STAGING_DATA_SOURCE_URL}",
+        "STAGING_DATA_TARGET_URL": "${STAGING_DATA_TARGET_URL}",
+        "STAGING_DATA_HMAC_KEY": "${STAGING_DATA_HMAC_KEY}"
+      }
+    }
+  }
+}
